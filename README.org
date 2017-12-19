@@ -1,0 +1,81 @@
+# -*-org-*-
+#+TITLE: murphy (What could go wrong?)
+
+*NOTE*: While we'd love for people to try this out, as long as the
+version is less than 1.0, we reserve the right (which we may well
+exercise) to change the API.
+
+Consider:
+
+#+BEGIN_SRC clojure
+  (try
+    (print-masterpiece)  ; Throws lp0-on-fire
+    (finally
+      (turn-off-light)))  ; Throws switch-broken
+#+END_SRC
+
+At this point, you'll know that you need to fix your light switch, but
+have no idea that your printer is on fire.  That's because a throw
+from a finally clause simply discards any pending exception.
+
+To preserve all of the failure information, we can use [[https://docs.oracle.com/javase/8/docs/api/java/lang/Throwable.html#addSuppressed-java.lang.Throwable-][exception suppression]],
+which is provided by newer versions of the JDK and write this instead:
+
+#+BEGIN_SRC clojure
+  (try!
+    (print-masterpiece)  ; Throws lp0-on-fire
+    (finally
+      (turn-off-light)))  ; Throws lp0-on-fire, with switch-broken
+                          ; available via (.getSuppressed lp0-on-fire).
+#+END_SRC
+
+As mentioned in the exception suppression documentation linked above,
+whether or not a suppressed exception is recorded or discarded depends
+on the constructor arguments for the original exception.
+
+In any case, if an exception does contain suppressed exceptions, they
+should be displayed by the normal top-level JVM exception handler,
+assuming they make it that far.
+
+* Facilities
+
+** (try! ...)
+Behaves like the normal try except that any exception thrown from a
+finally block when another exception is already pending will be
+suppressed.
+
+** (with-open! ...)
+Behaves like the normal with-open except that exceptions thrown by any
+of the close methods will be suppressed.  And of course any exception
+pending at the end of the cleanup will be thrown.
+
+** (with-final ...)
+Configurable with-open!:
+#+BEGIN_SRC clojure
+(with-final [foo (.acquire lock) .release
+             bar (open something) .close
+             baz (connect-to something-else) .disconnect]
+  ...)
+#+END_SRC clojure
+
+* Contributing
+
+All patches must be "signed off" by the author before official
+inclusion (see ./SIGNED-OFF-BY).  If you like, git can can add the
+appropriate pseudo-header for you via the --signoff argument to
+commit, amend, etc.
+
+* License
+
+This project is free software; you can redistribute it and/or modify
+it under the terms of (at your option) either of the following two
+licenses:
+
+  1) The GNU Lesser General Public License as published by the Free
+     Software Foundation; either version 2.1, or (at your option) any
+     later version: https://www.gnu.org/licenses/lgpl-2.1.html
+
+  2) The Eclipse Public License; either version 1.0 or (at your
+     option) any later version: http://www.eclipse.org/legal/epl-v10.html
+
+Copyright © 2017 Rob Browning <rlb@defaultvalue.org>
