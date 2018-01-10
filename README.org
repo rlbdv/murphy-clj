@@ -58,6 +58,26 @@ Configurable with-open!:
   ...)
 #+END_SRC clojure
 
+** (with-cleanup-on-error ...)
+Just like with-final, except that the cleanup only happens if an
+exception is thrown.  Useful in cases where normal cleanup must happen
+in a completely different scope.
+
+#+BEGIN_SRC clojure
+(defn start-server [...]
+  (with-cleanup-on-error [x (open-foo ...) .close
+                          y (connect-bar ...) .disconnect
+                          ...]
+    ...do many things...
+    {:x x :y y ...}))
+
+(defn stop-server [info]
+  (with-open! [_ (:y info)
+               _ (:x info)
+               ...]
+    true)
+#+END_SRC clojure
+
 * Contributing
 
 All patches must be "signed off" by the author before official

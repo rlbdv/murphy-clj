@@ -1,7 +1,7 @@
 (ns murphy-test
   (:require
    [clojure.test :refer :all]
-   [murphy :refer [try! with-final with-open!]]))
+   [murphy :refer [try! with-final with-cleanup-on-error with-open!]]))
 
 (deftest suppressing-try
   (is (= nil (try!)))
@@ -137,6 +137,99 @@
                                           (throw close-ex-2)))]
       (let [ex (try
                  (with-final [x closeable-1 .close
+                              y closeable-2 .close
+                              z closeable-3 .close]
+                   (is (=  [] @closes))
+                   (throw body-ex))
+                 (catch clojure.lang.ExceptionInfo ex
+                   ex))]
+        (is (= [3 2 1] @closes))
+        (is (= ["bax" {::bax 1}] [(.getMessage ex) (ex-data ex)]))
+        (is (= [close-ex-2 close-ex-1]
+               (seq (.getSuppressed ex))))))))
+
+(deftest with-cleanup-on-error-behavior
+  (is (= nil (with-cleanup-on-error [])))
+  (is (= 1 (with-cleanup-on-error [] 1)))
+
+  (testing "closeable thing"
+    (let [closed? (atom false)
+          closeable (->CloseableThing (fn [this] (reset! closed? true)))]
+      (is (= false @closed?))
+      (with-open [x closeable]
+        (is (= false @closed?))
+        :foo)
+      (is (= true @closed?))))
+
+  (testing "when nothing is thrown"
+    (let [closed? (atom false)
+          closeable (->CloseableThing (fn [this] (reset! closed? true)))]
+      (is (= false @closed?))
+      (is (= :foo (with-cleanup-on-error [x closeable .close]
+                    (is (= false @closed?))
+                    (is (= x closeable))
+                    :foo)))
+      (is (= false @closed?)))
+
+    (let [closes (atom [])
+          closeable-1 (->CloseableThing (fn [this] (swap! closes conj 1)))
+          closeable-2 (->CloseableThing (fn [this] (swap! closes conj 2)))]
+      (is (=  [] @closes))
+      (is (= :foo (with-cleanup-on-error [x closeable-1 .close
+                               y closeable-2 .close]
+                    (is (=  [] @closes))
+                    (is (= x closeable-1))
+                    (is (= y closeable-2))
+                    :foo)))
+      (is (= [] @closes))))
+
+  (testing "when body throws"
+    (let [closes (atom [])
+          closeable-1 (->CloseableThing (fn [this] (swap! closes conj 1)))
+          closeable-2 (->CloseableThing (fn [this] (swap! closes conj 2)))]
+      (is (=  [] @closes))
+      (is (= ["bar" {::bar 1}]
+             (try
+               (with-cleanup-on-error [x closeable-1 .close
+                            y closeable-2 .close]
+                 (is (=  [] @closes))
+                 (throw (ex-info "bar" {::bar 1})))
+               (catch clojure.lang.ExceptionInfo ex
+                 [(.getMessage ex) (ex-data ex)]))))
+      (is (= [2 1] @closes))))
+
+  (testing "when only a close throws"
+    (let [closes (atom [])
+          closeable-1 (->CloseableThing (fn [this] (swap! closes conj 1)))
+          closeable-2 (->CloseableThing (fn [this]
+                                          (swap! closes conj 2)
+                                          (throw (ex-info "bar" {::bar 1}))))
+          closeable-3 (->CloseableThing (fn [this] (swap! closes conj 3)))]
+      (let [result (try
+                     (with-cleanup-on-error [x closeable-1 .close
+                                           y closeable-2 .close
+                                           z closeable-3 .close]
+                       (is (=  [] @closes))
+                       :foo)
+                     (catch clojure.lang.ExceptionInfo ex
+                       ex))]
+        (is (= [] @closes))
+        (is (= :foo result)))))
+
+  (testing "when body and close throw"
+    (let [closes (atom [])
+          close-ex-1 (ex-info "bar" {::bar 1})
+          close-ex-2 (ex-info "baz" {::baz 1})
+          body-ex (ex-info "bax" {::bax 1})
+          closeable-1 (->CloseableThing (fn [this] (swap! closes conj 1)))
+          closeable-2 (->CloseableThing (fn [this]
+                                          (swap! closes conj 2)
+                                          (throw close-ex-1)))
+          closeable-3 (->CloseableThing (fn [this]
+                                          (swap! closes conj 3)
+                                          (throw close-ex-2)))]
+      (let [ex (try
+                 (with-cleanup-on-error [x closeable-1 .close
                               y closeable-2 .close
                               z closeable-3 .close]
                    (is (=  [] @closes))
