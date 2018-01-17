@@ -1,4 +1,4 @@
-(defproject murphy "0.2.0"
+(defproject murphy "0.3.0-SNAPSHOT"
   :description "Clojure library for better handling of bad situations."
   :url "https://gitlab.com/clj-murphy/murphy"
   :licenses [{:name "GNU Lesser General Public License, version 2.1 or newer"
