@@ -25,61 +25,74 @@
       (throw
        (RuntimeException. "finally clause must be last and unique")))))
 
-(defmacro with-final
-  "Bindings must be a vector of [name init finalize ...] triples.
-  Binds each name to the value of the corresponding init, and behaves
-  exactly as if each subsequent name were guarded by a nested try form
-  that calls (finalize name) in its finally clause.  Suppresses any
-  exceptions thrown by the finalize calls via the Throwable
-  addSuppressed method."
-  [bindings & body]
+(defn- validate-with-final-bindings [bindings]
   (assert (vector? bindings))
-  (if (empty? bindings)
-    `(do ~@body)
-    (do
-      (assert (zero? (mod (count bindings) 3)))
-      (assert (every? symbol? (take-nth 3 bindings)))
-      (let [[var init finalize] bindings]
-        `(let [finalize# (fn [x#] (~finalize x#))
-               ~var ~init]
-           (let [result# (try
-                           (with-final ~(subvec bindings 3)
-                             ~@body)
-                           (catch Throwable ex#
-                             (try
-                               (finalize# ~var)
-                               (catch Throwable ex2#
-                                 (.addSuppressed ex# ex2#)))
-                             (throw ex#)))]
-             (finalize# ~var)
-             result#))))))
+  (loop [bindings bindings]
+    (case (count bindings)
+      0 true
+      2 (let [[name init] bindings]
+          (assert (symbol? name))
+          true)
+      (1 3) (throw (RuntimeException. "Unexpected end of with-final bindings"))
+      (let [[name init maybe-kind & remainder] bindings]
+        (assert (symbol? name))
+        (if-not (#{:always :error} maybe-kind)
+          (recur (cons maybe-kind remainder))
+          (let [[action & remainder] remainder]
+            (recur remainder)))))))
 
-(defmacro with-cleanup-on-error
-  "Bindings must be a vector of [name init finalize ...] triples.
-  Binds each name to the value of the corresponding init, and behaves
-  exactly as if each subsequent name were guarded by a nested try form
-  that calls (finalize name) in a (catch Throwable ...) clause and
-  rethrows.  Suppresses any exceptions thrown by the finalize calls
-  via the Throwable addSuppressed method."
+(defmacro with-final
+  "The bindings must be a vector of elements, each of which is either
+  \"name init\", \"name init :always action\", or \"name init :error
+  action\".  Binds each name to the value of the corresponding init,
+  and behaves exactly as if each subsequent name were guarded by a
+  nested try! form that calls (action name) in its finally clause
+  when :always is specified, or (action name) in a Throwable handler
+  when :error is specified.  Suppresses any exceptions thrown by the
+  actions via the Throwable addSuppressed method."
   [bindings & body]
-  (assert (vector? bindings))
+  (validate-with-final-bindings bindings)
   (if (empty? bindings)
     `(do ~@body)
-    (do
-      (assert (zero? (mod (count bindings) 3)))
-      (assert (every? symbol? (take-nth 3 bindings)))
-      (let [[var init finalize] bindings]
-        `(let [finalize# (fn [x#] (~finalize x#))
-               ~var ~init]
-           (try
-             (with-cleanup-on-error ~(subvec bindings 3)
-               ~@body)
-             (catch Throwable ex#
-               (try
-                 (finalize# ~var)
-                 (catch Throwable ex2#
-                   (.addSuppressed ex# ex2#)))
-               (throw ex#))))))))
+    (if (= 2 (count bindings))
+      ;; "name init"
+      (case (count bindings)
+        2 (let [[var init] bindings]
+            `(let [~var ~init]
+               ~@body)))
+      ;; either "name init" or "name init kind action"
+      (let [[var init maybe-kind maybe-action] bindings]
+        (if-not (#{:always :error} maybe-kind)
+          `(let [~var ~init]
+             (with-final ~(subvec bindings 2)
+               ~@body))
+          (let [action maybe-action
+                kind maybe-kind]
+            (case kind
+              :always `(let [finalize# (fn [x#] (~action x#))
+                             ~var ~init]
+                         (let [result# (try
+                                         (with-final ~(subvec bindings 4)
+                                           ~@body)
+                                         (catch Throwable ex#
+                                           (try
+                                             (finalize# ~var)
+                                             (catch Throwable ex2#
+                                               (.addSuppressed ex# ex2#)))
+                                           (throw ex#)))]
+                           (finalize# ~var)
+                           result#))
+              :error `(let [cleanup# (fn [x#] (~action x#))
+                            ~var ~init]
+                        (try
+                          (with-final ~(subvec bindings 4)
+                            ~@body)
+                          (catch Throwable ex#
+                            (try
+                              (cleanup# ~var)
+                              (catch Throwable ex2#
+                                (.addSuppressed ex# ex2#)))
+                            (throw ex#)))))))))))
 
 (defmacro with-open!
   "Bindings must be a vector of [name init ...] pairs.  Binds each
@@ -94,6 +107,7 @@
     `(do ~@body)
     (do
       (assert (even? (count bindings)))
-      (let [bindings (vec (mapcat #(concat % '(.close)) (partition 2 bindings)))]
+      (let [bindings (vec (mapcat #(concat % '(:always .close))
+                                  (partition 2 bindings)))]
         `(with-final ~bindings
            ~@body)))))

@@ -50,30 +50,30 @@ of the close methods will be suppressed.  And of course any exception
 pending at the end of the cleanup will be thrown.
 
 ** (with-final ...)
-Configurable with-open!:
+Configurable cleanup, suppressing exceptions, either on :error (any
+throw) or :always:
+
 #+BEGIN_SRC clojure
-(with-final [foo (.acquire lock) .release
-             bar (open something) .close
-             baz (connect-to something-else) .disconnect]
+(with-final [foo (.acquire lock) :always .release
+             bar (open something) :always .close
+             baz {:foo foo :bar bar}]
   ...)
 #+END_SRC clojure
 
-** (with-cleanup-on-error ...)
-Just like with-final, except that the cleanup only happens if an
-exception is thrown.  Useful in cases where normal cleanup must happen
-in a completely different scope.
+:error can be particularly useful in cases where normal cleanup must
+happen in a completely different scope.
 
 #+BEGIN_SRC clojure
 (defn start-server [...]
-  (with-cleanup-on-error [x (open-foo ...) .close
-                          y (connect-bar ...) .disconnect
-                          ...]
+  (with-final [foo (open-foo ...) :error .close
+               bar (connect-bar ...) :error .disconnect
+               ...]
     ...do many things...
-    {:x x :y y ...}))
+    {:foo foo :bar bar ...}))
 
 (defn stop-server [info]
-  (with-open! [_ (:y info)
-               _ (:x info)
+  (with-final [_ (:foo info) :always .close
+               _ (:bar info) :always .disconnect
                ...]
     true)
 #+END_SRC clojure

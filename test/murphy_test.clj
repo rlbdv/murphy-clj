@@ -1,7 +1,7 @@
 (ns murphy-test
   (:require
    [clojure.test :refer :all]
-   [murphy :refer [try! with-final with-cleanup-on-error with-open!]]))
+   [murphy :refer [try! with-final with-open!]]))
 
 (deftest suppressing-try
   (is (= nil (try!)))
@@ -54,24 +54,24 @@
   java.lang.AutoCloseable
   (close [this] (close-this this)))
 
-(deftest with-final-behavior
+(deftest closeable-thing-behavior
+  (let [closed? (atom false)
+        closeable (->CloseableThing (fn [this] (reset! closed? true)))]
+    (is (= false @closed?))
+    (with-open [x closeable]
+      (is (= false @closed?))
+      :foo)
+    (is (= true @closed?))))
+
+(deftest with-final-always-behavior
   (is (= nil (with-final [])))
   (is (= 1 (with-final [] 1)))
-
-  (testing "closeable thing"
-    (let [closed? (atom false)
-          closeable (->CloseableThing (fn [this] (reset! closed? true)))]
-      (is (= false @closed?))
-      (with-open [x closeable]
-        (is (= false @closed?))
-        :foo)
-      (is (= true @closed?))))
 
   (testing "when nothing is thrown"
     (let [closed? (atom false)
           closeable (->CloseableThing (fn [this] (reset! closed? true)))]
       (is (= false @closed?))
-      (is (= :foo (with-final [x closeable .close]
+      (is (= :foo (with-final [x closeable :always .close]
                     (is (= false @closed?))
                     (is (= x closeable))
                     :foo)))
@@ -81,8 +81,8 @@
           closeable-1 (->CloseableThing (fn [this] (swap! closes conj 1)))
           closeable-2 (->CloseableThing (fn [this] (swap! closes conj 2)))]
       (is (=  [] @closes))
-      (is (= :foo (with-final [x closeable-1 .close
-                               y closeable-2 .close]
+      (is (= :foo (with-final [x closeable-1 :always .close
+                               y closeable-2 :always .close]
                     (is (=  [] @closes))
                     (is (= x closeable-1))
                     (is (= y closeable-2))
@@ -96,8 +96,8 @@
       (is (=  [] @closes))
       (is (= ["bar" {::bar 1}]
              (try
-               (with-final [x closeable-1 .close
-                            y closeable-2 .close]
+               (with-final [x closeable-1 :always .close
+                            y closeable-2 :always .close]
                  (is (=  [] @closes))
                  (throw (ex-info "bar" {::bar 1})))
                (catch clojure.lang.ExceptionInfo ex
@@ -112,9 +112,9 @@
                                           (throw (ex-info "bar" {::bar 1}))))
           closeable-3 (->CloseableThing (fn [this] (swap! closes conj 3)))]
       (let [ex (try
-                 (with-final [x closeable-1 .close
-                              y closeable-2 .close
-                              z closeable-3 .close]
+                 (with-final [x closeable-1 :always .close
+                              y closeable-2 :always .close
+                              z closeable-3 :always .close]
                    (is (=  [] @closes))
                    :foo)
                  (catch clojure.lang.ExceptionInfo ex
@@ -136,9 +136,9 @@
                                           (swap! closes conj 3)
                                           (throw close-ex-2)))]
       (let [ex (try
-                 (with-final [x closeable-1 .close
-                              y closeable-2 .close
-                              z closeable-3 .close]
+                 (with-final [x closeable-1 :always .close
+                              y closeable-2 :always .close
+                              z closeable-3 :always .close]
                    (is (=  [] @closes))
                    (throw body-ex))
                  (catch clojure.lang.ExceptionInfo ex
@@ -148,24 +148,15 @@
         (is (= [close-ex-2 close-ex-1]
                (seq (.getSuppressed ex))))))))
 
-(deftest with-cleanup-on-error-behavior
-  (is (= nil (with-cleanup-on-error [])))
-  (is (= 1 (with-cleanup-on-error [] 1)))
-
-  (testing "closeable thing"
-    (let [closed? (atom false)
-          closeable (->CloseableThing (fn [this] (reset! closed? true)))]
-      (is (= false @closed?))
-      (with-open [x closeable]
-        (is (= false @closed?))
-        :foo)
-      (is (= true @closed?))))
+(deftest with-final-error-behavior
+  (is (= nil (with-final [])))
+  (is (= 1 (with-final [] 1)))
 
   (testing "when nothing is thrown"
     (let [closed? (atom false)
           closeable (->CloseableThing (fn [this] (reset! closed? true)))]
       (is (= false @closed?))
-      (is (= :foo (with-cleanup-on-error [x closeable .close]
+      (is (= :foo (with-final [x closeable :error .close]
                     (is (= false @closed?))
                     (is (= x closeable))
                     :foo)))
@@ -175,8 +166,8 @@
           closeable-1 (->CloseableThing (fn [this] (swap! closes conj 1)))
           closeable-2 (->CloseableThing (fn [this] (swap! closes conj 2)))]
       (is (=  [] @closes))
-      (is (= :foo (with-cleanup-on-error [x closeable-1 .close
-                               y closeable-2 .close]
+      (is (= :foo (with-final [x closeable-1 :error .close
+                               y closeable-2 :error .close]
                     (is (=  [] @closes))
                     (is (= x closeable-1))
                     (is (= y closeable-2))
@@ -190,8 +181,8 @@
       (is (=  [] @closes))
       (is (= ["bar" {::bar 1}]
              (try
-               (with-cleanup-on-error [x closeable-1 .close
-                            y closeable-2 .close]
+               (with-final [x closeable-1 :error .close
+                            y closeable-2 :error .close]
                  (is (=  [] @closes))
                  (throw (ex-info "bar" {::bar 1})))
                (catch clojure.lang.ExceptionInfo ex
@@ -206,9 +197,9 @@
                                           (throw (ex-info "bar" {::bar 1}))))
           closeable-3 (->CloseableThing (fn [this] (swap! closes conj 3)))]
       (let [result (try
-                     (with-cleanup-on-error [x closeable-1 .close
-                                           y closeable-2 .close
-                                           z closeable-3 .close]
+                     (with-final [x closeable-1 :error .close
+                                  y closeable-2 :error .close
+                                  z closeable-3 :error .close]
                        (is (=  [] @closes))
                        :foo)
                      (catch clojure.lang.ExceptionInfo ex
@@ -229,9 +220,9 @@
                                           (swap! closes conj 3)
                                           (throw close-ex-2)))]
       (let [ex (try
-                 (with-cleanup-on-error [x closeable-1 .close
-                              y closeable-2 .close
-                              z closeable-3 .close]
+                 (with-final [x closeable-1 :error .close
+                              y closeable-2 :error .close
+                              z closeable-3 :error .close]
                    (is (=  [] @closes))
                    (throw body-ex))
                  (catch clojure.lang.ExceptionInfo ex
@@ -240,6 +231,44 @@
         (is (= ["bax" {::bax 1}] [(.getMessage ex) (ex-data ex)]))
         (is (= [close-ex-2 close-ex-1]
                (seq (.getSuppressed ex))))))))
+
+(deftest with-final-mixed-forms
+
+  (is (= 1 (with-final [x 1] x)))
+
+  (testing "normal let bindings and :error"
+    (let [closes (atom [])
+          closeable-1 (->CloseableThing (fn [this] (swap! closes conj 1)))
+          closeable-2 (->CloseableThing (fn [this] (swap! closes conj 2)))]
+      (is (=  [] @closes))
+      (is (= ["bar" {::bar 1}]
+             (try
+               (with-final [c1 closeable-1
+                            x c1 :error .close
+                            c2 closeable-2
+                            y c2 :error .close]
+                 (is (=  [] @closes))
+                 (throw (ex-info "bar" {::bar 1})))
+               (catch clojure.lang.ExceptionInfo ex
+                 [(.getMessage ex) (ex-data ex)]))))
+      (is (= [2 1] @closes))))
+
+  (testing "normal let bindings and :always"
+    (let [closes (atom [])
+          closeable-1 (->CloseableThing (fn [this] (swap! closes conj 1)))
+          closeable-2 (->CloseableThing (fn [this] (swap! closes conj 2)))]
+      (is (=  [] @closes))
+      (is (= ["bar" {::bar 1}]
+             (try
+               (with-final [c1 closeable-1
+                            x c1 :always .close
+                            c2 closeable-2
+                            y c2 :always .close]
+                 (is (=  [] @closes))
+                 (throw (ex-info "bar" {::bar 1})))
+               (catch clojure.lang.ExceptionInfo ex
+                 [(.getMessage ex) (ex-data ex)]))))
+      (is (= [2 1] @closes)))))
 
 (deftest suppressing-open
   ;; As long as this trivially is based on with-final, rely on its
