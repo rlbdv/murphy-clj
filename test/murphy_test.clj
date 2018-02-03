@@ -148,6 +148,13 @@
         (is (= [close-ex-2 close-ex-1]
                (seq (.getSuppressed ex))))))))
 
+(deftest trivial-with-final-destructuring
+  (is (= [2 1] (with-final [[x y] [1 2]]
+                 [y x])))
+  (is (= [3 1] (with-final [[x] [1 2]
+                            [y] [3 4]]
+                 [y x]))))
+
 (deftest with-final-error-behavior
   (is (= nil (with-final [])))
   (is (= 1 (with-final [] 1)))

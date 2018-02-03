@@ -30,12 +30,9 @@
   (loop [bindings bindings]
     (case (count bindings)
       0 true
-      2 (let [[name init] bindings]
-          (assert (symbol? name))
-          true)
+      2 true  ; final "name init" pair
       (1 3) (throw (RuntimeException. "Unexpected end of with-final bindings"))
       (let [[name init maybe-kind & remainder] bindings]
-        (assert (symbol? name))
         (if-not (#{:always :error} maybe-kind)
           (recur (cons maybe-kind remainder))
           (let [[action & remainder] remainder]
