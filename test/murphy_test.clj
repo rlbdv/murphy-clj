@@ -50,6 +50,25 @@
         (is (= [ex-2] (seq (.getSuppressed ex))))))
     (is (= [1] @fin))))
 
+(deftest multi-finally
+  (let [fin (atom [])
+        ex-1 (Exception. "one")
+        ex-2 (Exception. "two")
+        ex-3 (Exception. "three")]
+    (try
+      (try!
+        (throw ex-1)
+        (finally
+          (swap! fin conj 1)
+          (throw ex-2))
+        (finally
+          (swap! fin conj 2)
+          (throw ex-3)))
+      (catch Exception ex
+        (is (= ex-1 ex))
+        (is (= [ex-2 ex-3] (seq (.getSuppressed ex))))))
+    (is (= [1 2] @fin))))
+
 (defrecord CloseableThing [close-this]
   java.lang.AutoCloseable
   (close [this] (close-this this)))

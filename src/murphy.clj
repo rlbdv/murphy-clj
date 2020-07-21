@@ -1,29 +1,33 @@
 (ns murphy)
 
 (defmacro try!
-  "Exactly like try, except that if the finally clause throws anything
-  while an exception is already pending, the new exception will be
-  suppressed via the Throwable addSuppressed method."
+  "Exactly like try, except that it supports multiple finally clauses
+  which will be executed in order, and if any given finally clause
+  throws while an exception is already pending, the new exception will
+  be suppressed via the Throwable addSuppressed method."
   [& forms]
   (let [[others finals] (split-with #(or (not (list? %))
                                          (not= 'finally (first %)))
                                     forms)]
-    (case (count finals)
-      0 `(try ~@others)
-      1 (let [[_finally_ & fin-body] (first finals)]
-          `(let [fin# (fn [] ~@fin-body)
-                 result# (try
-                           ~@others
-                           (catch Throwable ex#
-                             (try
-                               (fin#)
-                               (catch Throwable ex2#
-                                 (.addSuppressed ex# ex2#)))
-                             (throw ex#)))]
-             (fin#)
-             result#))
+    (when-not (every? #(= 'finally (first %)) finals)
       (throw
-       (RuntimeException. "finally clause must be last and unique")))))
+       (RuntimeException. "finally clauses must be last")))
+    (loop [[[_finally_ & fin-body] & finals] finals
+           expansion `(try ~@others)]
+      (if-not _finally_
+        expansion
+        (recur finals
+               `(let [fin# (fn [] ~@fin-body)
+                      result# (try
+                                ~expansion
+                                (catch Throwable ex#
+                                  (try
+                                    (fin#)
+                                    (catch Throwable ex2#
+                                      (.addSuppressed ex# ex2#)))
+                                  (throw ex#)))]
+                  (fin#)
+                  result#))))))
 
 (defn- validate-with-final-bindings [bindings]
   (assert (vector? bindings))

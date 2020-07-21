@@ -40,9 +40,10 @@ assuming they make it that far.
 * Facilities
 
 ** (try! ...)
-Behaves like the normal try except that any exception thrown from a
-finally block when another exception is already pending will be
-suppressed.
+Behaves like the normal try, except that it supports multiple finally
+clauses which are executed in order, and if any given finally clause
+throws while an exception is already pending, the new exception will
+be suppressed via the Throwable addSuppressed method."
 
 ** (with-open! ...)
 Behaves like the normal with-open except that exceptions thrown by any
@@ -98,4 +99,4 @@ licenses:
   2) The Eclipse Public License; either version 1.0 or (at your
      option) any later version: http://www.eclipse.org/legal/epl-v10.html
 
-Copyright © 2017 Rob Browning <rlb@defaultvalue.org>
+Copyright © 2017-2018, 2020 Rob Browning <rlb@defaultvalue.org>
