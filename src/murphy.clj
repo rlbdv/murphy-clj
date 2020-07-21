@@ -57,10 +57,9 @@
     `(do ~@body)
     (if (= 2 (count bindings))
       ;; "name init"
-      (case (count bindings)
-        2 (let [[var init] bindings]
-            `(let [~var ~init]
-               ~@body)))
+      (let [[var init] bindings]
+        `(let [~var ~init]
+           ~@body))
       ;; either "name init" or "name init kind action"
       (let [[var init maybe-kind maybe-action] bindings]
         (if-not (#{:always :error} maybe-kind)
