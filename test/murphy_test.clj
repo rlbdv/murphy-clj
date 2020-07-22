@@ -16,6 +16,21 @@
     (is (= [1] @fin)))
   (let [fin (atom [])]
     (is (= nil (try!
+                 (catch Exception ex
+                   (swap! fin conj 1))
+                 (finally
+                   (swap! fin conj 2)))))
+    (is (= [2] @fin)))
+  (let [fin (atom [])]
+    (is (= [1] (try!
+                 (throw (Exception. "one"))
+                 (catch Exception ex
+                   (swap! fin conj 1))
+                 (finally
+                   (swap! fin conj 2)))))
+    (is (= [1 2] @fin)))
+  (let [fin (atom [])]
+    (is (= nil (try!
                  (finally
                    (swap! fin conj 1)
                    (swap! fin conj 2)))))
