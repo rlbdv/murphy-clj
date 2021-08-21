@@ -81,6 +81,9 @@ happen in a completely different scope.
 
 * Contributing
 
+You can run all of the existing tests (including ~lein test~) with
+~lein check-all~.
+
 All patches must be "signed off" by the author before official
 inclusion (see ./SIGNED-OFF-BY).  If you like, git can can add the
 appropriate pseudo-header for you via the --signoff argument to

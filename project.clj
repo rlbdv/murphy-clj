@@ -8,4 +8,5 @@
   :dependencies [[org.clojure/clojure "1.10.1"]]
   :profiles {:eastwood {:plugins [[jonase/eastwood "0.9.7"]]}}
   :eastwood {:config-files ["eastwood.clj"]}
-  :aliases {"eastwood" ["with-profile" "+eastwood" "eastwood"]})
+  :aliases {"eastwood" ["with-profile" "+eastwood" "eastwood"]
+            "check-all" ["do" "check," "eastwood," "test"]})
