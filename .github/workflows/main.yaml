@@ -1,0 +1,28 @@
+
+name: main
+on: [push, pull_request]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  main:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+      - run: lein deps
+      - name: Test against JDK 11
+        run: |
+          set -xue
+          export JAVA_HOME=$(echo /usr/lib/jvm/java-11-*)
+          export PATH="$JAVA_HOME/bin:$PATH"
+          lein do clean, check-all
+      - name: Test against JDK 8
+        run: |
+          set -xue
+          export JAVA_HOME=$(echo /usr/lib/jvm/java-8-*)
+          export PATH="$JAVA_HOME/bin:$PATH"
+          lein do clean, check-all
