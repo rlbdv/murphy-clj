@@ -1,6 +1,7 @@
 *~
 .hg/
 .hgignore
+/.eastwood
 /.lein-*
 /.nrepl-port
 /target
