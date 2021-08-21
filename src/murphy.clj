@@ -57,39 +57,41 @@
     `(do ~@body)
     (if (= 2 (count bindings))
       ;; "name init"
-      (let [[var init] bindings]
-        `(let [~var ~init]
+      (let [[bind init] bindings]
+        `(let [~bind ~init]
            ~@body))
       ;; either "name init" or "name init kind action"
-      (let [[var init maybe-kind maybe-action] bindings]
+      (let [[bind init maybe-kind maybe-action] bindings]
         (if-not (#{:always :error} maybe-kind)
-          `(let [~var ~init]
+          `(let [~bind ~init]
              (with-final ~(subvec bindings 2)
                ~@body))
           (let [action maybe-action
                 kind maybe-kind]
             (case kind
               :always `(let [finalize# (fn [x#] (~action x#))
-                             ~var ~init]
+                             val# ~init
+                             ~bind val#]
                          (let [result# (try
                                          (with-final ~(subvec bindings 4)
                                            ~@body)
                                          (catch Throwable ex#
                                            (try
-                                             (finalize# ~var)
+                                             (finalize# val#)
                                              (catch Throwable ex2#
                                                (.addSuppressed ex# ex2#)))
                                            (throw ex#)))]
-                           (finalize# ~var)
+                           (finalize# val#)
                            result#))
               :error `(let [cleanup# (fn [x#] (~action x#))
-                            ~var ~init]
+                            val# ~init
+                            ~bind val#]
                         (try
                           (with-final ~(subvec bindings 4)
                             ~@body)
                           (catch Throwable ex#
                             (try
-                              (cleanup# ~var)
+                              (cleanup# val#)
                               (catch Throwable ex2#
                                 (.addSuppressed ex# ex2#)))
                             (throw ex#)))))))))))

@@ -99,4 +99,4 @@ licenses:
   2) The Eclipse Public License; either version 1.0 or (at your
      option) any later version: http://www.eclipse.org/legal/epl-v10.html
 
-Copyright © 2017-2018, 2020 Rob Browning <rlb@defaultvalue.org>
+Copyright © 2017-2018, 2020-2021 Rob Browning <rlb@defaultvalue.org>
