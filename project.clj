@@ -6,7 +6,10 @@
              {:name "Eclipse Public License 1.0 or newer"
               :url "http://www.eclipse.org/legal/epl-v10.html"}]
   :dependencies [[org.clojure/clojure "1.12.3"]]
-  :profiles {:eastwood {:plugins [[jonase/eastwood "1.4.3"]]}}
+  :profiles {:eastwood {:plugins [[jonase/eastwood "1.4.3"]]}
+             :kondo {:dependencies [[clj-kondo "2025.10.23"]]}}
   :eastwood {:config-files ["eastwood.clj"]}
   :aliases {"eastwood" ["with-profile" "+eastwood" "eastwood"]
-            "check-all" ["do" "check," "eastwood," "test"]})
+            "kondo" ["with-profile" "+kondo" "run" "-m"
+                     "clj-kondo.main" "--parallel" "--lint" "src" "test"]
+            "check-all" ["do" "check," "kondo," "eastwood," "test"]})

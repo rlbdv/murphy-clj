@@ -36,10 +36,10 @@
       0 true
       2 true  ; final "name init" pair
       (1 3) (throw (RuntimeException. "Unexpected end of with-final bindings"))
-      (let [[name init maybe-kind & remainder] bindings]
+      (let [[_binding _init maybe-kind & remainder] bindings]
         (if-not (#{:always :error} maybe-kind)
           (recur (cons maybe-kind remainder))
-          (let [[action & remainder] remainder]
+          (let [[_action & remainder] remainder]
             (recur remainder)))))))
 
 (defmacro with-final

@@ -1,0 +1,4 @@
+{:hooks
+ {:analyze-call
+  {murphy/try! hooks/try!
+   murphy/with-open! hooks/with-open!}}}

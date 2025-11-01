@@ -1,6 +1,7 @@
 *~
 .hg/
 .hgignore
+/.clj-kondo/.cache/
 /.eastwood
 /.lein-*
 /.nrepl-port
