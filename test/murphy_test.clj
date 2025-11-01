@@ -148,8 +148,8 @@
       (is (=  [] @closes))
       (is (= ["bar" {::bar 1}]
              (try
-               (with-final [x closeable-1 :always close
-                            y closeable-2 :always close]
+               (with-final [_x closeable-1 :always close
+                            _y closeable-2 :always close]
                  (is (=  [] @closes))
                  (throw (ex-info "bar" {::bar 1})))
                (catch clojure.lang.ExceptionInfo ex
@@ -164,9 +164,9 @@
                                           (throw (ex-info "bar" {::bar 1}))))
           closeable-3 (->CloseableThing (fn [_] (swap! closes conj 3)))
           ex (try
-               (with-final [x closeable-1 :always close
-                            y closeable-2 :always close
-                            z closeable-3 :always close]
+               (with-final [_x closeable-1 :always close
+                            _y closeable-2 :always close
+                            _z closeable-3 :always close]
                  (is (=  [] @closes))
                  :foo)
                (catch clojure.lang.ExceptionInfo ex
@@ -188,9 +188,9 @@
                                           (swap! closes conj 3)
                                           (throw close-ex-2)))
           ex (try
-               (with-final [x closeable-1 :always close
-                            y closeable-2 :always close
-                            z closeable-3 :always close]
+               (with-final [_x closeable-1 :always close
+                            _y closeable-2 :always close
+                            _z closeable-3 :always close]
                  (is (=  [] @closes))
                  (throw body-ex))
                (catch clojure.lang.ExceptionInfo ex
@@ -206,9 +206,9 @@
   (is (= [3 1] (with-final [[x] [1 2]
                             [y] [3 4]]
                  [y x])))
-  (is (= [2 1]
+  (is (= [2 1 [1 2]]
          (with-final [[x y :as v] [1 2] :always #(is (= [1 2] %))]
-           [y x]))))
+           [y x v]))))
 
 (deftest with-final-error-behavior
   (is (= nil (with-final [])))
@@ -243,8 +243,8 @@
       (is (=  [] @closes))
       (is (= ["bar" {::bar 1}]
              (try
-               (with-final [x closeable-1 :error close
-                            y closeable-2 :error close]
+               (with-final [_x closeable-1 :error close
+                            _y closeable-2 :error close]
                  (is (=  [] @closes))
                  (throw (ex-info "bar" {::bar 1})))
                (catch clojure.lang.ExceptionInfo ex
@@ -259,9 +259,9 @@
                                           (throw (ex-info "bar" {::bar 1}))))
           closeable-3 (->CloseableThing (fn [_] (swap! closes conj 3)))
           result (try
-                   (with-final [x closeable-1 :error close
-                                y closeable-2 :error close
-                                z closeable-3 :error close]
+                   (with-final [_x closeable-1 :error close
+                                _y closeable-2 :error close
+                                _z closeable-3 :error close]
                      (is (=  [] @closes))
                      :foo)
                    (catch clojure.lang.ExceptionInfo ex
@@ -282,9 +282,9 @@
                                           (swap! closes conj 3)
                                           (throw close-ex-2)))
           ex (try
-               (with-final [x closeable-1 :error close
-                            y closeable-2 :error close
-                            z closeable-3 :error close]
+               (with-final [_x closeable-1 :error close
+                            _y closeable-2 :error close
+                            _z closeable-3 :error close]
                  (is (=  [] @closes))
                  (throw body-ex))
                (catch clojure.lang.ExceptionInfo ex
@@ -306,9 +306,9 @@
       (is (= ["bar" {::bar 1}]
              (try
                (with-final [c1 closeable-1
-                            x c1 :error close
+                            _x c1 :error close
                             c2 closeable-2
-                            y c2 :error close]
+                            _y c2 :error close]
                  (is (=  [] @closes))
                  (throw (ex-info "bar" {::bar 1})))
                (catch clojure.lang.ExceptionInfo ex
@@ -323,9 +323,9 @@
       (is (= ["bar" {::bar 1}]
              (try
                (with-final [c1 closeable-1
-                            x c1 :always close
+                            _x c1 :always close
                             c2 closeable-2
-                            y c2 :always close]
+                            _y c2 :always close]
                  (is (=  [] @closes))
                  (throw (ex-info "bar" {::bar 1})))
                (catch clojure.lang.ExceptionInfo ex

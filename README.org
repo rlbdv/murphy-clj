@@ -91,9 +91,9 @@ commit, amend, etc.
 
 * License
 
-This project is free software; you can redistribute it and/or modify
-it under the terms of (at your option) either of the following two
-licenses:
+This project is free software; unless otherwise specified below, you
+can redistribute it and/or modify it under the terms of (at your
+option) either of the following two licenses:
 
   1) The GNU Lesser General Public License as published by the Free
      Software Foundation; either version 2.1, or (at your option) any
@@ -103,3 +103,15 @@ licenses:
      option) any later version: http://www.eclipse.org/legal/epl-v10.html
 
 Copyright © 2017-2018, 2020-2021 2025 Rob Browning <rlb@defaultvalue.org>
+
+The with-final function in .clj-kondo/hooks.clj, which is only needed
+by kondo for linting, is derived from the PuppetDB version as of
+
+  commit 0c03037f659edf13307bc190bdc44f014aeb4158
+  Author: Rob Browning <rlb@puppet.com>
+  Date:   Mon Apr 18 11:28:35 2022 -0500
+
+    (PDB-5484) Add clj-kondo dependency, cmd, and config
+
+which was covered under the terms of the Apache License, Version 2.0,
+January 2004 (http://www.apache.org/licenses/).

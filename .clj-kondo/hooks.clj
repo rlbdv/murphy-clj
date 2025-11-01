@@ -23,3 +23,30 @@
   [{{[_ & body] :children} :node}]
   ;; Rewrite as with-open since :lint-as with-open didn't work
   {:node (list-node (list* (token-node 'with-open) body))})
+
+(defn with-final
+  [{{[_ bindings & body] :children} :node}]
+  ;; Strip the :error and :always args and rewrite as let.
+  (let [basic-bindings (loop [bindings (:children bindings)
+                              result []]
+                         (case (count bindings)
+                           0 result
+                           2 (apply conj result bindings)
+                           (1 3) (throw (ex-info "Unexpected end of with-final bindings" {}))
+                           (let [[name init maybe-kind & others] bindings]
+                             (if-not (#{:always :error} maybe-kind)
+                               (recur (cons maybe-kind others)
+                                      (conj result
+                                            name
+                                            init))
+                               (let [[action & others] others]
+                                 (recur others
+                                        (conj result
+                                              name
+                                              init
+                                              (token-node '_)
+                                              action)))))))]
+    {:node (list-node
+            (list* (token-node 'let)
+                   (vector-node basic-bindings)
+                   body))}))
