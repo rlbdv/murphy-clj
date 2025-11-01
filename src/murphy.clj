@@ -44,13 +44,14 @@
 
 (defmacro with-final
   "The bindings must be a vector of elements, each of which is either
-  \"name init\", \"name init :always action\", or \"name init :error
-  action\".  Binds each name to the value of the corresponding init,
-  and behaves exactly as if each subsequent name were guarded by a
-  nested try! form that calls (action name) in its finally clause
-  when :always is specified, or (action name) in a Throwable handler
-  when :error is specified.  Suppresses any exceptions thrown by the
-  actions via the Throwable addSuppressed method."
+  \"binding init\", \"binding init :always action\", or \"binding
+  init :error action\". Binds each binding to the value of the
+  corresponding init just as let would, and behaves as if each init
+  value were guarded by a nested try! form that calls action on the
+  value in a finally clause when :always is specified, or action on
+  the value in a Throwable handler when :error is specified.
+  Suppresses any exceptions thrown by the actions via the Throwable
+  addSuppressed method."
   [bindings & body]
   (validate-with-final-bindings bindings)
   (if (empty? bindings)
@@ -97,10 +98,10 @@
                             (throw ex#)))))))))))
 
 (defmacro with-open!
-  "Bindings must be a vector of [name init ...] pairs.  Binds each
-  name to the value of the corresponding init, and behaves exactly as
-  if each subsequent name were guarded by a nested try form that
-  calls (.close name) in its finally clause.  Suppresses any
+  "Bindings must be a vector of [binding init ...] pairs.  Binds each
+  binding to the value of the corresponding init just as let would,
+  and behaves as if each value were guarded by a nested try form that
+  calls .close on the value in a finally clause.  Suppresses any
   exceptions thrown by the .close calls via the Throwable
   addSuppressed method."
   [bindings & body]

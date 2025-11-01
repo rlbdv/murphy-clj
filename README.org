@@ -43,12 +43,13 @@ assuming they make it that far.
 Behaves like the normal try, except that it supports multiple finally
 clauses which are executed in order, and if any given finally clause
 throws while an exception is already pending, the new exception will
-be suppressed via the Throwable addSuppressed method."
+be suppressed via the Throwable addSuppressed method.
 
-** (with-open! ...)
+** (with-open! [binding init ...] ...)
 Behaves like the normal with-open except that exceptions thrown by any
 of the close methods will be suppressed.  And of course any exception
-pending at the end of the cleanup will be thrown.
+pending at the end of the cleanup will be thrown. It also allows
+destructuring.
 
 ** (with-final ...)
 Configurable cleanup, suppressing exceptions, either on :error (any
@@ -56,7 +57,7 @@ throw) or :always:
 
 #+BEGIN_SRC clojure
 (with-final [foo (.acquire lock) :always .release
-             bar (open something) :always .close
+             {:keys [id kind] :as bar} (open something) :always .close
              baz {:foo foo :bar bar}]
   ...)
 #+END_SRC clojure
