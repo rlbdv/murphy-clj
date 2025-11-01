@@ -338,7 +338,7 @@
     (let [closed? (atom false)
           closeable (->CloseableThing (fn [this] (reset! closed? true)))]
       (is (= false @closed?))
-      (with-open [^AutoCloseable x closeable]
+      (with-open! [c ^AutoCloseable closeable]
         (is (= false @closed?))
-        :foo)
+        c)
       (is (= true @closed?)))))
