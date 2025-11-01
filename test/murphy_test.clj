@@ -345,3 +345,16 @@
         (is (= false @closed?))
         c)
       (is (= true @closed?)))))
+
+(def ^:private warn-on-reflection-orig *warn-on-reflection*)
+(set! *warn-on-reflection* true)
+
+(deftest reflection
+  (with-in-str "test"
+    (with-final [in ^java.lang.AutoCloseable *in* :always .close]
+      in))
+  (with-in-str "test"
+    (with-open! [in ^java.lang.AutoCloseable *in*]
+      in)))
+
+(set! *warn-on-reflection* warn-on-reflection-orig)

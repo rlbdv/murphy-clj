@@ -51,7 +51,8 @@
   value in a finally clause when :always is specified, or action on
   the value in a Throwable handler when :error is specified.
   Suppresses any exceptions thrown by the actions via the Throwable
-  addSuppressed method."
+  addSuppressed method. Type hints should be on the init forms, not
+  the names."
   [bindings & body]
   (validate-with-final-bindings bindings)
   (if (empty? bindings)
@@ -68,29 +69,28 @@
           (let [[bind init] bindings
                 action (nth bindings 3)]
             (case kind
-              :always `(let [finalize# (fn [x#] (~action x#))
-                             val# ~init
-                             ~bind val#]
+              :always `(let [val# ~init
+                             ~bind val#
+                             finalize# (fn [] (~action val#))]
                          (let [result# (try
                                          (with-final ~(subvec bindings 4)
                                            ~@body)
                                          (catch Throwable ex#
                                            (try
-                                             (finalize# val#)
+                                             (finalize#)
                                              (catch Throwable ex2#
                                                (.addSuppressed ex# ex2#)))
                                            (throw ex#)))]
-                           (finalize# val#)
+                           (finalize#)
                            result#))
-              :error `(let [cleanup# (fn [x#] (~action x#))
-                            val# ~init
+              :error `(let [val# ~init
                             ~bind val#]
                         (try
                           (with-final ~(subvec bindings 4)
                             ~@body)
                           (catch Throwable ex#
                             (try
-                              (cleanup# val#)
+                              (~action val#)
                               (catch Throwable ex2#
                                 (.addSuppressed ex# ex2#)))
                             (throw ex#)))))))))))
@@ -101,7 +101,8 @@
   and behaves as if each value were guarded by a nested try form that
   calls .close on the value in a finally clause.  Suppresses any
   exceptions thrown by the .close calls via the Throwable
-  addSuppressed method."
+  addSuppressed method. Type hints should be on the init forms, not
+  the names."
   [bindings & body]
   (assert (vector? bindings))
   (if (empty? bindings)
