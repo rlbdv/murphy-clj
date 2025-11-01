@@ -58,17 +58,15 @@
     `(do ~@body)
     (if (= 2 (count bindings))
       ;; "name init"
-      (let [[bind init] bindings]
-        `(let [~bind ~init]
-           ~@body))
+      `(let ~bindings ~@body)
       ;; either "name init" or "name init kind action"
-      (let [[bind init maybe-kind maybe-action] bindings]
-        (if-not (#{:always :error} maybe-kind)
-          `(let [~bind ~init]
+      (let [kind (nth bindings 2 nil)]
+        (if-not (#{:always :error} kind)
+          `(let ~(subvec bindings 0 2)
              (with-final ~(subvec bindings 2)
                ~@body))
-          (let [action maybe-action
-                kind maybe-kind]
+          (let [[bind init] bindings
+                action (nth bindings 3)]
             (case kind
               :always `(let [finalize# (fn [x#] (~action x#))
                              val# ~init
