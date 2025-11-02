@@ -8,21 +8,27 @@ defaults:
 
 jobs:
   main:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v2
         with:
           persist-credentials: false
-      - run: lein deps
-      - name: Test against JDK 11
+      - run: |
+          set -xue
+          sudo -i apt install leiningen
+          lein version
+          lein deps
+      - name: Test against JDK 21
         run: |
           set -xue
-          export JAVA_HOME=$(echo /usr/lib/jvm/java-11-*)
+          export JAVA_HOME="${JAVA_HOME_21_X64}"
           export PATH="$JAVA_HOME/bin:$PATH"
+          sudo -i apt install leiningen
           lein do clean, check-all
       - name: Test against JDK 8
         run: |
           set -xue
-          export JAVA_HOME=$(echo /usr/lib/jvm/java-8-*)
+          export JAVA_HOME="${JAVA_HOME_8_X64}"
           export PATH="$JAVA_HOME/bin:$PATH"
+          sudo -i apt install leiningen
           lein do clean, check-all
